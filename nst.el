@@ -133,8 +133,11 @@
       `((Font-Size 20)
 	(Font "Futura")
 	(Title ,title)
+	(Title-Font-Size 40)
+	(Margin-Left 100)
+	(Margin-Top 100)
 	(Width 2200)
-	(Height 700))
+	(Height 900))
       (append
        '((Data-Format: date))
        (nst-sel (format "select date, %s from stats order by date limit 20"
@@ -146,7 +149,36 @@
 		(format "~/src/nst.el/web/stats-%s.webp" type))))
       (call-process "convert" nil nil nil "/tmp/stats.png" out)
       out)))
-  
+
+(defun nst--group-charts ()
+  (with-temp-buffer
+    (svg-print
+     (eplot-make-plot
+      `((Format bar-chart)
+	(Color "#008000")
+	(Font-Size 20)
+	(Title "Top Groups")
+	(Font "Futura")
+	(Margin-Bottom 300)
+	(Margin-Left 200)
+	(Title-Font-Size 40)
+	(Margin-Top 100)
+	(X-Label-Orientation vertical)
+	(X-Label-Orientation-Angle -45)
+	(Width 2200)
+	(Height 900))
+      (append
+       '((Bar-Max-Width: 100))
+       (cl-loop for (name count) in
+		(nst-sel "select name, requests from top_groups where date = ? order by requests desc limit 20"
+			 (caar (nst-sel "select max(date) from top_groups")))
+		collect (list count "# Label: " name)))))
+    (write-region (point-min) (point-max) "/tmp/stats.svg")
+    (call-process "rsvg-convert" nil nil nil
+		  "--output=/tmp/stats.png" "/tmp/stats.svg")
+    (let ((out (expand-file-name "~/src/nst.el/web/stats-top-groups.webp")))
+      (call-process "convert" nil nil nil "/tmp/stats.png" out)
+      out)))
 
 (provide 'nst)
 
