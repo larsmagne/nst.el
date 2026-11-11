@@ -118,7 +118,35 @@
       (error "Unknown unit: %s" unit))))
 
 (defun nst--generate-charts ()
+  (nst--chart "ips" "Unique IPs")
+  (nst--chart "new_newsgroups" "New Newsgroups")
+  (nst--chart "articles_read" "Number of Articles Read")
+  (nst--chart "bytes_transferred" "Bytes Output")
+  (nst--chart "articles_posted" "Articles Posted")
+  (nst--chart "groups_selected" "Groups Selected")
   )
+
+(defun nst--chart (type title)
+  (with-temp-buffer
+    (svg-print
+     (eplot-make-plot
+      `((Font-Size 20)
+	(Font "Futura")
+	(Title ,title)
+	(Width 2200)
+	(Height 700))
+      (append
+       '((Data-Format: date))
+       (nst-sel (format "select date, %s from stats order by date limit 20"
+			type)))))
+    (write-region (point-min) (point-max) "/tmp/stats.svg")
+    (call-process "rsvg-convert" nil nil nil
+		  "--output=/tmp/stats.png" "/tmp/stats.svg")
+    (let ((out (expand-file-name
+		(format "~/src/nst.el/web/stats-%s.webp" type))))
+      (call-process "convert" nil nil nil "/tmp/stats.png" out)
+      out)))
+  
 
 (provide 'nst)
 
