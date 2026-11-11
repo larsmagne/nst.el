@@ -1,3 +1,9 @@
 img {
   max-width: 800px;
 }
+
+body {
+  background-color: #e0e0e0;
+  max-width: 900px;
+  margin: 0 auto;
+}
