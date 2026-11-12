@@ -8,3 +8,7 @@ body {
   margin: 0 auto;
   font-family: "Mr Dafoe", cursive;
 }
+
+img {
+    border: 10px solid black;
+}
