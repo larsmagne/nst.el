@@ -3,7 +3,8 @@ img {
 }
 
 body {
-  background-color: #e0e0e0;
+  background-color: #80c080;
   max-width: 900px;
   margin: 0 auto;
+  font-family: "Mr Dafoe", cursive;
 }
