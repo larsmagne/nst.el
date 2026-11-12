@@ -122,13 +122,13 @@
       (error "Unknown unit: %s" unit))))
 
 (defun nst--generate-charts ()
+  (nst--top-groups)
   (nst--chart "ips" "Unique IPs")
   (nst--chart "new_newsgroups" "New Newsgroups")
   (nst--chart "articles_read" "Number of Articles Read")
   (nst--chart "bytes_transferred" "Bytes Output")
   (nst--chart "articles_posted" "Articles Posted")
-  (nst--chart "groups_selected" "Groups Selected")
-  )
+  (nst--chart "groups_selected" "Groups Selected"))
 
 (defun nst--chart (type title)
   (with-temp-buffer
@@ -157,7 +157,7 @@
       (call-process "convert" nil nil nil "/tmp/stats.png" out)
       out)))
 
-(defun nst--group-charts ()
+(defun nst--top-groups ()
   (with-temp-buffer
     (svg-print
      (eplot-make-plot
