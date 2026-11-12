@@ -139,7 +139,10 @@
 	(Width 2200)
 	(Height 900))
       (append
-       '((Data-Format: date))
+       '((Data-Format: date)
+	 (Style: circle)
+	 (Size: 20)
+	 (Fill-Color: red))
        (nst-sel (format "select date, %s from stats order by date limit 20"
 			type)))))
     (write-region (point-min) (point-max) "/tmp/stats.svg")
