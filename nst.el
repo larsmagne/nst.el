@@ -26,6 +26,10 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+(require 'eplot)
+(require 'svg)
+
 (defvar nst--db nil)
 
 (defun nst-sel (statement &rest args)
@@ -45,7 +49,7 @@
   "Get new data and generate the stats."
   (nst--initialize)
   (with-temp-buffer
-    (insert-file-contents-literally "/tmp/mail")
+    (insert-file-contents-literally "/var/spool/mail/mail")
     (while (re-search-forward "^Subject: .*Daily Usenet report for \\(.*\\)"
 			      nil t)
       (let ((date (format-time-string
