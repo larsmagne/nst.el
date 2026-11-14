@@ -50,9 +50,7 @@
   "Get new data and generate the stats."
   (nst--initialize)
   (with-temp-buffer
-    (insert-file-contents-literally
-     "/tmp/mail")
-     ;"/var/spool/mail/mail")
+    (insert-file-contents-literally "/var/spool/mail/mail")
     (while (re-search-forward "^Subject: .*Daily Usenet report for \\(.*\\)"
 			      nil t)
       (let ((date (format-time-string
