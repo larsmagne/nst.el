@@ -43,13 +43,16 @@
     (setq nst--db (sqlite-open
 		   (expand-file-name "nst.sqlite" user-emacs-directory)))
     (nst-exec "create table if not exists stats (date date, new_newsgroups number, ips number, articles_read number, groups_selected number, bytes_transferred number, articles_posted number)")
-    (nst-exec "create table if not exists top_groups (date date, name string, requests number)")))
+    (nst-exec "create table if not exists top_groups (date date, name string, requests number)")
+    (nst-exec "create table if not exists top_readers (date date, name string, bytes number)")))
     
 (defun nst ()
   "Get new data and generate the stats."
   (nst--initialize)
   (with-temp-buffer
-    (insert-file-contents-literally "/var/spool/mail/mail")
+    (insert-file-contents-literally
+     "/tmp/mail")
+     ;"/var/spool/mail/mail")
     (while (re-search-forward "^Subject: .*Daily Usenet report for \\(.*\\)"
 			      nil t)
       (let ((date (format-time-string
@@ -74,8 +77,13 @@
 		(nst-exec "insert into top_groups(date, name, requests) values(?, ?, ?)"
 			  date
 			  (plist-get group :group)
-			  (plist-get group :requests)))))
-	  (goto-char (point-max))))))
+			  (plist-get group :requests)))
+	      (dolist (reader (plist-get stats :top-readers))
+		(nst-exec "insert into top_readers(date, name, bytes) values(?, ?, ?)"
+			  date
+			  (plist-get reader :name)
+			  (plist-get reader :bytes))))
+	    (goto-char (point-max)))))))
   (nst--generate-charts))
 
 (defun nst--gather-stats ()
@@ -87,18 +95,32 @@
 		   (list :new-newsgroups
 			 (string-to-number
 			  (nth 0 (split-string (match-string 1))))))))
-    (when (and (search-forward "\nNNRP readership statistics [Top 100]" nil t)
-	       (re-search-forward "^TOTAL: \\(.*\\)" nil t))
-      (let ((bits (split-string (match-string 1))))
-	(setq stats
-	      (nconc stats
-		     (list :ips (string-to-number (nth 0 bits))
-			   :articles-read (string-to-number (nth 2 bits))
-			   :bytes-transferred (* (string-to-number (nth 3 bits))
-						 (nst-size-unit-multiplier
-						  (nth 4 bits)))
-			   :groups-selected (string-to-number (nth 5 bits))
-			   :articles-posted (string-to-number (nth 6 bits)))))))
+    (when (search-forward "\nNNRP readership statistics [Top 100]" nil t)
+      (forward-line 2)
+      (let ((readers nil))
+	(while (and (not (eolp))
+		    (length< readers 30))
+	  (let ((bits (split-string (buffer-substring (pos-bol) (pos-eol)))))
+	    (unless (equal (nth 0 bits) "ciao.gmane.io")
+	      (push (list :name (nth 0 bits)
+			  :bytes (* (string-to-number (nth 3 bits))
+				    (nst-size-unit-multiplier
+				     (nth 4 bits))))
+		    readers)))
+	  (forward-line 1))
+	(setq stats (nconc stats
+			   (list :top-readers (nreverse readers)))))
+      (when (re-search-forward "^TOTAL: \\(.*\\)" nil t)
+	(let ((bits (split-string (match-string 1))))
+	  (setq stats
+		(nconc stats
+		       (list :ips (string-to-number (nth 0 bits))
+			     :articles-read (string-to-number (nth 2 bits))
+			     :bytes-transferred (* (string-to-number (nth 3 bits))
+						   (nst-size-unit-multiplier
+						    (nth 4 bits)))
+			     :groups-selected (string-to-number (nth 5 bits))
+			     :articles-posted (string-to-number (nth 6 bits))))))))
     (when (search-forward "\nNewsgroup request counts (by newsgroup) [Top 100]:"
 			  nil t)
       (forward-line 2)
@@ -123,6 +145,7 @@
 
 (defun nst--generate-charts ()
   (nst--top-groups)
+  (nst--top-readers)
   (nst--chart "ips" "Unique IPs")
   (nst--chart "new_newsgroups" "New Newsgroups")
   (nst--chart "articles_read" "Number of Articles Read")
@@ -187,6 +210,36 @@
     (call-process "rsvg-convert" nil nil nil
 		  "--output=/tmp/stats.png" "/tmp/stats.svg")
     (let ((out (expand-file-name "~/src/nst.el/web/stats-top-groups.webp")))
+      (call-process "convert" nil nil nil "/tmp/stats.png" out)
+      out)))
+
+(defun nst--top-readers ()
+  (with-temp-buffer
+    (svg-print
+     (eplot-make-plot
+      `((Format bar-chart)
+	(Color "#008000")
+	(Font-Size 20)
+	(Title "Top Readers")
+	(Font "Futura")
+	(Margin-Bottom 300)
+	(Margin-Left 200)
+	(Title-Font-Size 40)
+	(Margin-Top 100)
+	(X-Label-Orientation vertical)
+	(X-Label-Orientation-Angle -45)
+	(Width 2200)
+	(Height 900))
+      (append
+       '((Bar-Max-Width: 100))
+       (cl-loop for (name bytes) in
+		(nst-sel "select name, bytes from top_readers where date = ? order by bytes desc limit 20"
+			 (caar (nst-sel "select max(date) from top_readers")))
+		collect (list bytes "# Label: " name)))))
+    (write-region (point-min) (point-max) "/tmp/stats.svg")
+    (call-process "rsvg-convert" nil nil nil
+		  "--output=/tmp/stats.png" "/tmp/stats.svg")
+    (let ((out (expand-file-name "~/src/nst.el/web/stats-top-readers.webp")))
       (call-process "convert" nil nil nil "/tmp/stats.png" out)
       out)))
 
