@@ -147,7 +147,8 @@
       (append
        `((Data-Format: date)
 	,@(and (equal type "new_newsgroups")
-	       '((Style: impulse))))
+	       '((Style: impulse)
+		 (Size: 100))))
        (nst-sel (format "select date, %s from stats where date > '2026-11-12' order by date limit 20"
 			type)))))
     (write-region (point-min) (point-max) "/tmp/stats.svg")
