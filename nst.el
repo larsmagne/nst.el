@@ -146,6 +146,7 @@
 	       '((Min 0))))
       (append
        `((Data-Format: date)
+	 (Size: 4)
 	,@(and (equal type "new_newsgroups")
 	       '((Style: impulse)
 		 (Size: 100))))
