@@ -141,13 +141,14 @@
 	(Margin-Left 100)
 	(Margin-Top 100)
 	(Width 2200)
-	(Height 900))
+	(Height 900)
+	,@(and (equal type "new_newsgroups")
+	       '((Min 0))))
       (append
-       '((Data-Format: date)
-	 (Style: circle)
-	 (Size: 20)
-	 (Fill-Color: red))
-       (nst-sel (format "select date, %s from stats order by date limit 20"
+       `((Data-Format: date)
+	,@(and (equal type "new_newsgroups")
+	       '((Style: impulse))))
+       (nst-sel (format "select date, %s from stats where date > '2026-11-12' order by date limit 20"
 			type)))))
     (write-region (point-min) (point-max) "/tmp/stats.svg")
     (call-process "rsvg-convert" nil nil nil
